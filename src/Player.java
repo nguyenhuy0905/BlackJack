@@ -1,111 +1,82 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class Player {
-    //i'm being lazy here. Some of the Dealer-exclusive methods will still be put in here.
-    private List<String> deck = new ArrayList<>();
-
-    public int BetAmount;
-
-    public void ShowDeck() {
-        System.out.println("Cards in deck: ");
-        for (String card :
-                deck) {
-            System.out.println(card);
-        }
-    }
-
-    private String name;
+public class Player extends BasicParticipantFunctionalities {
     private int chips;
 
-    public void AddChips(int amount) {
-        chips += amount;
-        System.out.println(String.format("New chip balance: %s", chips));
-        if (chips >= 500) {
-            System.out.println("You won!");
-            //let's pretend the game is over here. I haven't the time to code a restart function
+    private static int playerNumber;
+
+    private int betAmount = 0;
+
+    public void PlaceBet(){
+        System.out.println("""
+                Please place a bet amount.
+                Bet amount must not surpass your current chip balance""");
+        betAmount = Integer.parseInt(Game.TakeInput("int"));
+        if(betAmount > chips){
+            System.out.println("""
+                    Invalid bet amount""");
+            PlaceBet();
         }
     }
 
-    public void SubtractChips(int amount) {
-        chips -= amount;
-        System.out.println(String.format("New chip balance: %s", chips));
-        if (chips <= 0) {
-            System.out.println("You lost lol");
-            //let's pretend the game is over here.
-        }
-    }
-
-    public Player(String name) {
+    public Player(String name, int playerNumber)
+    {
         this.name = name;
-        chips = 200;
-        System.out.println(String.format("Player %s created", name));
-        deck.add(Game.DrawCard());
-        deck.add(Game.DrawCard());
-        if (name != "Dealer") {
-            System.out.println("Place bet amount: ");
-            BetAmount = Integer.parseInt(Main.TakeInput());
-            System.out.println(String.format("Starting chip balance: %s", chips));
-            ShowDeck();
-            DeckValue();
-            return;
+        this.chips = 200;
+        this.playerNumber = playerNumber;
+        this.deck = new ArrayList<>();
+        Main.numPlayers++;
+        System.out.println(String.format("Player %s created as player number %s", name, playerNumber));
+        System.out.println();
+
+        System.out.println("""
+                Starting amount of chips: 200
+                Get to 500 chips to win, or lose if you have chips left""");
+        PlaceBet();
+        System.out.println();
+
+        for(int i = 0; i<2; i++){
+            BroadcastDrawCard();
         }
-        FaceUp(0);
+        BroadcastDeckValue();
     }
 
-    public int DeckValue() {
-        int cardValue = 0;
-        for (String s :
-                deck) {
-            String card = s.substring(1);
-            switch (card) {
-                case "J", "Q", "K":
-                    cardValue += 10;
-                    break;
-                case "A":
-                    cardValue += 11;
-                    break;
-                default:
-                    cardValue += Integer.parseInt(card);
-            }
+    public void TurnAction() //public so that the Dealer can call action
+    {
+        if(Game.Round != 1)
+        {
+            PlaceBet();
         }
-        System.out.println(String.format("%1s deck has value of %2s", name, cardValue));
-        System.out.println("Please select an action: " +
-                "1 for Hit, " +
-                "2 for Pass");
-        CardAction(Main.TakeInput());
-        return cardValue;
+        System.out.println(String.format("""
+                Player %s, please take one action by typing one of these numbers:
+                0 to draw a card
+                1 to pass the drawing card""", playerNumber));
+        int response = Game.TakeInput(1);
 
-
-    }
-
-    //actions
-    private void CardAction(String input) {
-        switch (input) {
-            case "1":
-                System.out.println("You chose to draw a card");
-                String card = Game.DrawCard();
-                deck.add(card);
-                System.out.println(String.format("Drew a %s card", card));
-                DeckValue();
-                break;
-            case "2":
-                System.out.println("You chose to not draw a new card");
-            default:
-                break;
+        switch(response)
+        {
+            case 0:
+                BroadcastDrawCard();
+                BroadcastDeckValue();
+            case 1:
+                System.out.println(String.format("Player %s, aka. %s, chose to not draw a card", playerNumber, name));
         }
     }
 
-    //the methods down here are dealer-specific.
-    public String FaceUp(int index) {
-        System.out.println(String.format("One of the dealer's cards is %s", deck.get(index)));
-        if (index == deck.size() && index > 16) {
-            {
-                String card = Game.DrawCard();
-                deck.add(card);
-                System.out.println(String.format("The dealer drew a %s card", card));
-            }
-        }
-        return deck.get(index);
+    private void BroadcastDrawCard(){
+        DrawCard();
+        String card = DrawCard();
+        deck.add(card);
+        System.out.println(String.format("%s drew card %s", name, card));
+    }
+
+    private void BroadcastDeckValue(){
+        deckValue = DeckValue();
+        System.out.println(String.format("Player %s's, aka. %s's, deck value is %s", playerNumber, name, deckValue));
+    }
+
+    void Bust(){
+
     }
 }
